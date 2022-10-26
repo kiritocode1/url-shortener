@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpStatus,
+  Param,
   Post,
 } from '@nestjs/common';
 import { ShortenerDTO } from './dto/shortener.dto';
@@ -14,6 +16,11 @@ import { ShortenerService } from './shortener.service';
 })
 export class ShortenerController {
   constructor(private readonly shortenerService: ShortenerService) {}
+
+  @Get(':shortUrl')
+  findOne(@Param('shortUrl') shortUrl: string) {
+    return this.shortenerService.getOriginalUrl(shortUrl);
+  }
 
   @Post()
   async shortener(@Body() body: ShortenerDTO) {

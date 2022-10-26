@@ -1,5 +1,4 @@
 import confetti from 'canvas-confetti';
-import { Store } from '../../routes';
 
 function confettiAnimate() {
   confetti({
@@ -20,13 +19,9 @@ function confettiAnimate() {
   });
 }
 
-export function copyUrl(state: Store) {
+export function copyUrl() {
   const result = document.querySelector('#result #text');
   navigator.clipboard.writeText(result!.textContent!);
-
-  if (!state.showAlert) {
-    state.showAlert = true;
-  }
 }
 
 /**
@@ -36,7 +31,7 @@ export function copyUrl(state: Store) {
 const getShortenUrl = async (originalUrl: string) => {
   let result;
   try {
-    result = await fetch('/api/v1/shortener', {
+    result = await fetch(`${process.env.API_DOMAIN}/api/v1/shortener`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ originalUrl }),
@@ -55,8 +50,7 @@ export function openLink() {
 export async function handleShortener({ state }: any) {
   const result = document.getElementById('result');
   const loader = document.getElementById('loading');
-  //const urlInput = document.getElementById("urlInput") as HTMLInputElement;
-  const urlInput = state.inputValue;
+  const urlInput = normalizeUrl(state.inputValue);
   loader!.classList.replace('hidden', 'block');
   result!.classList.replace('block', 'hidden');
 
@@ -72,7 +66,6 @@ export async function handleShortener({ state }: any) {
   loader!.classList.replace('block', 'hidden');
   result!.classList.replace('hidden', 'block');
 
-  //urlInput.value = "";
   state.inputValue = '';
   if (!newUrl) {
     result!.querySelector('#error')!.textContent = 'This url is invalid..';
@@ -82,11 +75,32 @@ export async function handleShortener({ state }: any) {
   }
 
   result!.querySelector('#error')!.textContent = '';
-  result!.querySelector('#text')!.textContent =
-    window.location.href.split('#')[0] + newUrl;
+  result!.querySelector('#text')!.textContent = window.location.href.split('#')[0] + newUrl;
   result!.querySelector('#action')!.classList.replace('hidden', 'block');
 
-  state.showAlert = true;
-  copyUrl(state);
+  copyUrl();
   confettiAnimate();
 }
+
+/**
+ * Normalize input url
+ *  - add protocol 'http' if missing.
+ *  - correct protocol http/https if mistyped one character.
+ * @param {String} url
+ * @returns {String} Normalized url
+ */
+const normalizeUrl = (url: string): string => {
+  const regexBadPrefix = new RegExp(/^(:\/*|\/+|https:\/*)/); // Check if starts with  ':', '/' and 'https:example.com' etc.
+  const regexBadPrefixHttp = new RegExp(/^http:\/*/); // Check if 'http:example.com', 'http:/example.com' etc.
+  const regexProtocolExists = new RegExp(/^(.+:\/\/|[^a-zA-Z])/); // Check if starts with '*://' or special chars.
+  const regexMistypedHttp = new RegExp(
+    /^([^hH][tT][tT][pP]|[hH][^tT][tT][pP]|[hH][tT][^tT][pP]|[hH][tT][tT][^pP])/
+  );
+
+  url = url
+    .replace(regexMistypedHttp, 'http')
+    .replace(regexBadPrefix, 'https://')
+    .replace(regexBadPrefixHttp, 'http://');
+
+  return (regexProtocolExists.test(url) ? '' : 'https://') + url;
+};

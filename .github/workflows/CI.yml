@@ -1,4 +1,4 @@
-name: URL-Shortener CI
+name: CI
 
 on:
   push:
@@ -24,8 +24,16 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Install NPM Dependencies
-        run: npm install
+        run: npm install && npm run install:all
+
+      - name: Build solution
+        if: always()
+        run: npm run build:all
+
+      - name: Run tests
+        if: always()
+        run: npm run test:all
 
       - name: Prettier Check
-        if: ${{ always() }}
+        if: always()
         run: npm run fmt.check

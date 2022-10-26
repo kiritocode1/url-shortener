@@ -2,22 +2,19 @@ import {
   component$,
   createContext,
   useContextProvider,
-  useRef,
+  useSignal,
   useStore,
   useStylesScoped$,
 } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
-import { ShortenerAlert } from '~/components/alert/alert';
 import { GithubButton } from '~/components/github-button/github-button';
 import { Loader } from '~/components/loader/loader';
 import { generateQRCode } from '~/components/qr-code/handleQRCode';
 import { QRCode } from '~/components/qr-code/qr-code';
-import {
-  copyUrl,
-  handleShortener,
-  openLink,
-} from '~/components/shortener-input/handleShortener';
+import { copyUrl, handleShortener, openLink } from '~/components/shortener-input/handleShortener';
 import { ShortenerInput } from '~/components/shortener-input/shortener-input';
+import { ThemeSwitcher } from '~/components/theme-switcher/theme-switcher';
+import { Tooltip } from '~/components/tooltip/tooltip';
 import { Waves } from '~/components/waves/waves';
 import animations from '../assets/css/animations.css?inline';
 import styles from './index.css?inline';
@@ -25,7 +22,6 @@ import styles from './index.css?inline';
 export const InputContext = createContext('input');
 
 export interface Store {
-  showAlert: boolean;
   inputValue: string;
 }
 
@@ -33,10 +29,9 @@ export default component$(() => {
   useStylesScoped$(animations);
   useStylesScoped$(styles);
 
-  const shortenerInputRef = useRef();
+  const tooltipCopyRef = useSignal(false);
 
   const state = useStore<Store>({
-    showAlert: false,
     inputValue: '',
   });
 
@@ -48,51 +43,58 @@ export default component$(() => {
         <div class="col-start-2 col-end-12 md:col-start-3 md:col-end-11">
           <div className="flex flex-col">
             <div className="flex justify-end my-5">
-              <GithubButton
-                type="Star"
-                user="origranot"
-                repo="url-shortener"
-                isLarge
-                showCount
-                label="Star"
-              ></GithubButton>
+              <div className="flex">
+                <div className="grid  flex-grow place-items-center">
+                  <span className="h-5">
+                    <GithubButton
+                      type="Star"
+                      user="origranot"
+                      repo="reduced.to"
+                      showCount
+                      label="Star"
+                    ></GithubButton>
+                  </span>
+                </div>
+                <div className="divider divider-horizontal"></div>
+                <div className="grid  flex-grow place-items-center">
+                  <ThemeSwitcher></ThemeSwitcher>
+                </div>
+              </div>
             </div>
             <article class="prose mx-auto max-w-4xl pb-16">
-              <h1>URL Shortener</h1>
+              <div class="mx-auto">
+                <img class="mx-auto" src="logo.png" width="410" height="73" alt="Logo" />
+              </div>
               <p>
-                Add your very long <b>URL</b> in the input bellow and click on
-                the button to make it shorter
+                Add your very long <b>URL</b> in the input below and click on the button to make it
+                shorter
               </p>
             </article>
             <ShortenerInput
-              ref={shortenerInputRef}
               onKeyUp$={(event) => {
-                if (
-                  event.key.toLowerCase() === 'enter' &&
-                  state.inputValue.length > 0
-                ) {
+                if (event.key.toLowerCase() === 'enter' && state.inputValue.length > 0) {
                   handleShortener({ state });
                 }
               }}
-              onInput$={(event) =>
-                (state.inputValue = (event.target as HTMLInputElement).value)
-              }
+              onInput$={(event) => (state.inputValue = (event.target as HTMLInputElement).value)}
               onSubmit$={() => handleShortener({ state })}
             />
             <Loader />
             <div id="result" class="hidden">
               <p id="error" className="fade-in"></p>
-              <span
-                id="text"
-                className="fade-in cursor-pointer"
-                onClick$={() => copyUrl(state)}
-              ></span>
-              <div id="action" className="hidden btn-group p-4">
+              <span id="text" className="fade-in cursor-pointer" onClick$={() => copyUrl()}></span>
+              <div
+                id="action"
+                className="hidden btn-group p-4 relative [&>:first-child>.btn]:rounded-l-lg [&>:last-child>.btn]:rounded-r-lg [&>*>.btn]:rounded-none"
+              >
                 <button
                   type="button"
                   title="Copy"
-                  className="btn hover:btn-primary"
-                  onClick$={() => copyUrl(state)}
+                  className="btn relative"
+                  onClick$={() => {
+                    copyUrl();
+                    tooltipCopyRef.value = true;
+                  }}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -108,11 +110,12 @@ export default component$(() => {
                       d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
                     />
                   </svg>
+                  <Tooltip label="Copied!" position="bottom" open={tooltipCopyRef}></Tooltip>
                 </button>
                 <button
                   type="button"
                   title="Open in new tab"
-                  className="btn hover:btn-primary"
+                  className="btn"
                   onClick$={() => openLink()}
                 >
                   <svg
@@ -133,8 +136,8 @@ export default component$(() => {
                 <button
                   type="button"
                   title="QR Code"
-                  className="btn hover:btn-primary"
-                  onClick$={() => generateQRCode(100)}
+                  className="btn"
+                  onClick$={() => generateQRCode(150)}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -161,7 +164,6 @@ export default component$(() => {
             <div id="qrcode" className="hidden mx-auto">
               <QRCode showDownload />
             </div>
-            <ShortenerAlert />
           </div>
         </div>
       </div>
@@ -171,5 +173,46 @@ export default component$(() => {
 });
 
 export const head: DocumentHead = {
-  title: 'URL Shortener',
+  title: 'The FREE Open-Source URL Shortener | Reduced.to',
+  meta: [
+    {
+      name: 'title',
+      content: 'Reduced.to | The FREE Open-Source URL Shortener',
+    },
+    {
+      name: 'description',
+      content:
+        'Reduced.to is the FREE, Modern, and Open-Source URL Shortener. Convert those ugly and long URLs into short, easy to manage links and QR-Codes.',
+    },
+    {
+      property: 'og:type',
+      content: 'website',
+    },
+    {
+      property: 'og:url',
+      content: 'https://reduced.to',
+    },
+    {
+      property: 'og:title',
+      content: 'Reduced.to | The FREE Open-Source URL Shortener',
+    },
+    {
+      property: 'og:description',
+      content:
+        'Reduced.to is the FREE, Modern, and Open-Source URL Shortener. Convert those ugly and long URLs into short, easy to manage links and QR-Codes.',
+    },
+    {
+      property: 'twitter:card',
+      content: 'summary',
+    },
+    {
+      property: 'twitter:title',
+      content: 'Reduced.to | The FREE Open-Source URL Shortener',
+    },
+    {
+      property: 'twitter:description',
+      content:
+        'Reduced.to is the FREE, Modern, and Open-Source URL Shortener. Convert those ugly and long URLs into short, easy to manage links and QR-Codes.',
+    },
+  ],
 };

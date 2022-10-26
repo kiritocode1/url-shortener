@@ -1,24 +1,11 @@
+import { Controller, Get, Param, Redirect, Render, VERSION_NEUTRAL } from '@nestjs/common';
 import { ShortenerService } from './shortener/shortener.service';
-import {
-  Controller,
-  Get,
-  Param,
-  Redirect,
-  Render,
-  VERSION_NEUTRAL,
-} from '@nestjs/common';
 
 @Controller({
   version: VERSION_NEUTRAL,
 })
 export class AppController {
   constructor(private readonly ShortenerService: ShortenerService) {}
-
-  @Get()
-  @Render('index')
-  root() {
-    return;
-  }
 
   @Get(':path')
   @Redirect()
@@ -27,6 +14,8 @@ export class AppController {
     if (originalUrl !== null) {
       return { url: originalUrl };
     }
-    return '404!';
+
+    // 404, redirect to /unknown
+    return { url: '/unknown' };
   }
 }
